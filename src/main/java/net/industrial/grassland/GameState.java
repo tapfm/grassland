@@ -7,6 +7,7 @@ import java.util.List;
 import net.industrial.grassland.GrasslandException;
 import net.industrial.grassland.audio.Sound;
 import net.industrial.grassland.graphics.Graphics;
+import net.industrial.grassland.graphics.Ray;
 import net.industrial.grassland.scene.Camera;
 import net.industrial.grassland.scene.Light;
 import org.lwjgl.LWJGLException;
@@ -160,6 +161,18 @@ public abstract class GameState {
     }
 
     public List<GameObject> castRay(Ray r) {
-        return null;  
+        ArrayList<GameObject> intersections = new ArrayList<>();
+        for (GameObject object : objects) {
+            if (object instanceof CollidableGameObject && ((CollidableGameObject) object).intersectsRay(r))
+                intersections.add(object);
+        }
+        Collections.sort(intersections, (a, b) -> {
+            float dif = ((CollidableGameObject) a).closestDistance(r) -
+                    ((CollidableGameObject) b).closestDistance(r);
+            if (dif > 0) return 1;
+            else if (dif < 0) return -1;
+            else return 0;
+        });
+        return  intersections;
     }
 }
