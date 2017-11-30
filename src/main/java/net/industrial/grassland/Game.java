@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.lwjgl.LWJGLException;
+import org.lwjgl.input.Cursor;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 
@@ -11,6 +13,7 @@ import net.industrial.grassland.GrasslandException;
 import net.industrial.grassland.audio.AudioMaster;
 import net.industrial.grassland.graphics.Graphics;
 import net.industrial.grassland.graphics.Vector3f;
+import net.industrial.grassland.resources.Sprite;
 import net.industrial.grassland.scene.Camera;
 
 public abstract class Game {
@@ -35,7 +38,7 @@ public abstract class Game {
         this.fullscreen = fullscreen;
     }
 
-    public abstract void initStates();
+    public abstract void initStates() throws GrasslandException;
 
     public void init() 
             throws GrasslandException {
@@ -52,7 +55,6 @@ public abstract class Game {
             states = new ArrayList<GameState>();
             initStates();
          
-            for (GameState state : states) state.init(this);
             loop();
         } catch (LWJGLException e) {
             throw new GrasslandException();
@@ -81,6 +83,7 @@ public abstract class Game {
                         transitionCooldown = 1f;
                         changingState = false;
                         currentState = targetState;
+                        currentState.init(this);
                     }
                 } else if (transitionCooldown > 0f) {
                     transitionCooldown -= 0.002f * delta;
@@ -88,12 +91,17 @@ public abstract class Game {
                         transitionCooldown = 0f;
                 }
              
+                graphics.clear();
                 int remainder = delta % 10;
                 int step = delta / 10;
-                for (int i = 0; i < step; i++) update(10); 
-                if (remainder != 0) update(remainder); 
-              
-                graphics.clear();
+                for (int i = 0; i < step; i++) {
+                    graphics.initMatrices(); 
+                    update(10);
+                } 
+                if (remainder != 0) {
+                    graphics.initMatrices();
+                    update(remainder);
+                } 
                 currentState.renderDefault(this, graphics);
                 graphics.render();
                 Display.update();
@@ -114,7 +122,8 @@ public abstract class Game {
         currentState.updateDefault(this, delta);
     }
 
-    public void enterState(int newState) {
+    public void enterState(int newState) 
+            throws GrasslandException {
         if (currentState != null) {
             changingState = true;
             for (GameState state : states) {
@@ -122,7 +131,10 @@ public abstract class Game {
             }
         } else {
             for (GameState state : states) {
-                if (state.getId() == newState) currentState = state;
+                if (state.getId() == newState) {
+                    currentState = state;
+                    currentState.init(this);
+                }
             }
         }
     }
@@ -153,5 +165,14 @@ public abstract class Game {
 
     public Input getInput() {
         return input;
+    }
+
+    public void setCursor(Sprite sprite, int x, int y) 
+            throws GrasslandException {
+        try {
+            Mouse.setNativeCursor(sprite.toCursor(x, y));
+        } catch (LWJGLException e) {
+            throw new GrasslandException();
+        }
     }
 }

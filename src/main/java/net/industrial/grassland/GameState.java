@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import net.industrial.grassland.CollidableGameObject;
 import net.industrial.grassland.GrasslandException;
 import net.industrial.grassland.audio.Sound;
 import net.industrial.grassland.graphics.Graphics;
 import net.industrial.grassland.graphics.Ray;
+import net.industrial.grassland.graphics.Vector3f;
 import net.industrial.grassland.scene.Camera;
 import net.industrial.grassland.scene.Light;
 import org.lwjgl.LWJGLException;
@@ -81,6 +83,10 @@ public abstract class GameState {
 
     public void toggleDebug() {
         debug = !debug;
+    }
+
+    public boolean debugEnabled() {
+        return debug;
     }
 
     public void addLight(Light light) {
@@ -160,10 +166,25 @@ public abstract class GameState {
         newObjects.add(object);        
     }
 
+    public Ray getMouseRay(Vector3f worldSpaceMouse) {
+        if (perspective) {
+            Vector3f cameraPosition = new Vector3f();
+            if (active != null) cameraPosition = active.getPosition();
+            return new Ray(cameraPosition, worldSpaceMouse.sub(cameraPosition));
+        } else {
+            Vector3f lookVector = new Vector3f(0f, 0f, -1f);
+            if (active != null) lookVector = active.lookVector();
+            return new Ray(worldSpaceMouse, lookVector);
+        }
+    }
+
     public List<GameObject> castRay(Ray r) {
         ArrayList<GameObject> intersections = new ArrayList<>();
         for (GameObject object : objects) {
             if (object instanceof CollidableGameObject && ((CollidableGameObject) object).intersectsRay(r))
+=======
+            if (object instanceof CollidableGameObject && 
+                    ((CollidableGameObject) object).intersectsRay(r))
                 intersections.add(object);
         }
         Collections.sort(intersections, (a, b) -> {
